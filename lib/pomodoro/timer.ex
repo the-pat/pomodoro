@@ -5,24 +5,27 @@ defmodule Pomodoro.Timer do
 
   @timeout 100
 
-  def start_link(remaining_milliseconds, opts) do
-    GenServer.start_link(__MODULE__, {:ok, remaining_milliseconds}, opts)
+  def start_link(opts) do
+    remaining_milliseconds = Keyword.fetch!(opts, :remaining_milliseconds)
+    timer_id = Keyword.fetch!(opts, :timer_id)
+
+    GenServer.start_link(__MODULE__, {:ok, remaining_milliseconds}, name: via_tuple(timer_id))
   end
 
-  def state(pid) do
-    GenServer.call(pid, :state)
+  def state(timer_id) do
+    GenServer.call(via_tuple(timer_id), :state)
   end
 
-  def start(pid) do
-    GenServer.cast(pid, :start)
+  def start(timer_id) do
+    GenServer.cast(via_tuple(timer_id), :start)
   end
 
-  def pause(pid) do
-    GenServer.cast(pid, :pause)
+  def pause(timer_id) do
+    GenServer.cast(via_tuple(timer_id), :pause)
   end
 
-  def restart(pid) do
-    GenServer.cast(pid, :restart)
+  def restart(timer_id) do
+    GenServer.cast(via_tuple(timer_id), :restart)
   end
 
   @impl true
@@ -102,5 +105,9 @@ defmodule Pomodoro.Timer do
 
   defp schedule do
     Process.send_after(self(), :tick, @timeout)
+  end
+
+  defp via_tuple(timer_id) do
+    {:via, :gproc, {:n, :l, {:timer_id, timer_id}}}
   end
 end
